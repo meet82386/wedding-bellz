@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -18,13 +20,39 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int activeIndex = 0;
   final controller = CarouselController();
-  final urlImages = [
-    'https://firebasestorage.googleapis.com/v0/b/wedding-bellz-4b46e.appspot.com/o/Salwars%2Fs1.jpg?alt=media&token=b105ac92-f405-4008-9162-951ccde8fe85',
-    'https://images.unsplash.com/photo-1580654712603-eb43273aff33?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
-    'https://images.unsplash.com/photo-1627916607164-7b20241db935?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=464&q=80',
-    'https://images.unsplash.com/photo-1522037576655-7a93ce0f4d10?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
-    'https://images.unsplash.com/photo-1570829053985-56e661df1ca2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
-  ];
+  late final urlImages;
+  late var nameofUser = "Name";
+
+  void getData() async {
+    User? user = await FirebaseAuth.instance.currentUser;
+    var vari = await FirebaseFirestore.instance
+        .collection("Sale")
+        .doc("OOkLPbQGCeehoADtkqaP")
+        .get();
+    setState(() {
+      urlImages = vari.data()!['Links'];
+    });
+  }
+
+  void getName() async {
+    User? user = await FirebaseAuth.instance.currentUser;
+
+    var userData = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user?.uid)
+        .get();
+
+    setState(() {
+      nameofUser = userData.data()!['Name'];
+    });
+  }
+
+  @override
+  void initState() {
+    getData();
+    getName();
+    super.initState();
+  }
 
   Widget buildIndicator() => AnimatedSmoothIndicator(
         onDotClicked: animateToSlide,
@@ -64,8 +92,8 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(
                 height: 15,
               ),
-              const Text(
-                "Welcome Name",
+              Text(
+                "Welcome ${nameofUser}",
                 style: TextStyle(
                   fontSize: 25,
                   fontWeight: FontWeight.bold,
@@ -87,7 +115,7 @@ class _HomePageState extends State<HomePage> {
                           final urlImage = urlImages[index];
                           return Container(
                             decoration:
-                                BoxDecoration(border: Border.all(width: 3)),
+                                BoxDecoration(border: Border.all(width: 1)),
                             child: buildImage(
                               urlImage,
                               index,
@@ -97,7 +125,7 @@ class _HomePageState extends State<HomePage> {
                         options: CarouselOptions(
                             height: 200,
                             autoPlay: true,
-                            enableInfiniteScroll: true,
+                            // enableInfiniteScroll: true,
                             autoPlayAnimationDuration: Duration(seconds: 5),
                             enlargeCenterPage: true,
                             onPageChanged: (index, reason) =>

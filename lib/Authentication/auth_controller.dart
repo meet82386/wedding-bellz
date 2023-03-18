@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:wedding_bellz/Authentication/login_page.dart';
 import '../database.dart';
+import '../listing.dart';
 import '../main_view/nav_bar.dart';
 
 void showToast(String s) {
@@ -36,6 +37,8 @@ class AuthController extends GetxController {
   _initialScreen(User? user) {
     if (user == null) {
       Get.offAll(() => LoginPage());
+    } else if (auth.currentUser?.email == "admin@gmail.com") {
+      Get.offAll(() => Listing());
     } else {
       Get.offAll(() => NavBar());
     }
@@ -81,6 +84,8 @@ class AuthController extends GetxController {
         "Address": address,
         "Area": area,
         "PinCode": zip_int,
+        "Orders": [],
+        "Cart": [],
         "profile-image":
             'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__480.png',
       };

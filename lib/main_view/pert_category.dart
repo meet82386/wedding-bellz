@@ -2,13 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:get/get.dart';
 import '../constants.dart' as consts;
 
-class Cart extends StatefulWidget {
-  const Cart({Key? key}) : super(key: key);
-
+class PertCategory extends StatefulWidget {
+  const PertCategory({Key? key, required this.category}) : super(key: key);
+  final String category;
   @override
-  State<Cart> createState() => _CartState();
+  State<PertCategory> createState() => _PertCategoryState();
 }
 
 void showToast(String s) {
@@ -22,21 +23,23 @@ void showToast(String s) {
       fontSize: 16.0);
 }
 
-class _CartState extends State<Cart> {
+class _PertCategoryState extends State<PertCategory> {
   var rol;
   var list = [];
-
   FirebaseAuth auth = FirebaseAuth.instance;
 
   Future<void> getData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(auth.currentUser!.uid)
-        .get();
+    final querySnapshot =
+        await FirebaseFirestore.instance.collection('Categories').get();
 
-    rol = doc.data()!['cart'];
-    list = list + rol;
+    for (var doc in querySnapshot.docs) {
+      // Getting data directly
 
+      rol = doc.get('data');
+      if (rol[0]['category'] == widget.category) {
+        list = list + rol;
+      }
+    }
     setState(() {
       print(list);
     });
@@ -127,14 +130,15 @@ class _CartState extends State<Cart> {
                 Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed:
+                          categories['quantity'] == 0 ? null : () async {},
                       style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(consts.FONTC)),
                       child: Row(
                         children: const [
                           Icon(Icons.add_circle_outline),
                           SizedBox(
-                            width: 2,
+                            width: 10,
                           ),
                           Text(
                             'Rent',
@@ -144,32 +148,28 @@ class _CartState extends State<Cart> {
                       ),
                     ),
                     SizedBox(
-                      width: 10,
+                      width: 20,
                     ),
                     ElevatedButton(
                       onPressed: () async {
-                        final docRef = await FirebaseFirestore.instance
+                        await FirebaseFirestore.instance
                             .collection("users")
-                            .doc(auth.currentUser!.uid)
-                            .update({
-                          'cart': FieldValue.arrayRemove([categories]),
-                        }).then((value) => {
-                                  setState(() async {
-                                    list = [];
-                                    await getData();
-                                  })
-                                });
+                            .doc(auth.currentUser?.uid)
+                            .set({
+                          "cart": FieldValue.arrayUnion([categories])
+                        }, SetOptions(merge: true));
+                        showToast('Added to the Cart');
                       },
-                      style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(consts.FONTC)),
                       child: Row(
                         children: const [
-                          Icon(Icons.remove_circle_outline),
+                          Icon(Icons.add_shopping_cart),
                           SizedBox(
-                            width: 2,
+                            width: 10,
                           ),
                           Text(
-                            'Remove',
+                            'Cart',
                             style: TextStyle(fontSize: 20),
                           ),
                         ],
@@ -187,20 +187,16 @@ class _CartState extends State<Cart> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Scaffold(
-        backgroundColor: const Color(consts.BG),
-        appBar: AppBar(
-          title: const Text(
-            'Cart',
-          ),
-          backgroundColor: const Color(consts.FONTC),
-        ),
-        body: ListView(
-          children: list.map((value) {
-            return WidgetCat(categories: value);
-          }).toList(),
-        ),
+    return Scaffold(
+      backgroundColor: Color(consts.BG),
+      appBar: AppBar(
+        title: Text('${widget.category} wear'),
+        backgroundColor: const Color(consts.FONTC),
+      ),
+      body: ListView(
+        children: list.map((value) {
+          return WidgetCat(categories: value);
+        }).toList(),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../constants.dart' as consts;
 
@@ -9,6 +11,32 @@ class MyHeaderDrawer extends StatefulWidget {
 }
 
 class _MyHeaderDrawerState extends State<MyHeaderDrawer> {
+  var image = "";
+  var name = "";
+  var mail = "";
+
+  void getData() async {
+    User? user = await FirebaseAuth.instance.currentUser;
+
+    var userData = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user?.uid)
+        .get();
+
+    setState(() {
+      name = userData.data()!['Name'];
+      image = userData.data()!['profile-image'];
+      mail = userData.data()!['Email'];
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    getData();
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -25,12 +53,11 @@ class _MyHeaderDrawerState extends State<MyHeaderDrawer> {
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 image: DecorationImage(
-                  image: NetworkImage(
-                      'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__480.png'),
+                  image: NetworkImage(image),
                 )),
           ),
           Text(
-            "Name fetch",
+            name,
             style: TextStyle(
                 color: Color(consts.FONTC),
                 fontSize: 20,
@@ -40,7 +67,7 @@ class _MyHeaderDrawerState extends State<MyHeaderDrawer> {
             height: 5,
           ),
           Text(
-            "mail@fetch.com",
+            mail,
             style: TextStyle(
               color: Color(consts.FONTC),
               fontSize: 16,
