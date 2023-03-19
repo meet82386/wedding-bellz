@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:wedding_bellz/Authentication/login_page.dart';
+import 'package:wedding_bellz/Authentication/varify.dart';
 import '../database.dart';
 import '../listing.dart';
 import '../main_view/nav_bar.dart';
@@ -40,7 +41,9 @@ class AuthController extends GetxController {
     } else if (auth.currentUser?.email == "admin@gmail.com") {
       Get.offAll(() => Listing());
     } else {
-      Get.offAll(() => NavBar());
+      if (user.emailVerified) {
+        Get.offAll(() => NavBar());
+      }
     }
   }
 
@@ -74,8 +77,10 @@ class AuthController extends GetxController {
         showToast("Invalid Pin Code");
         return;
       }
+
       await auth.createUserWithEmailAndPassword(
           email: email, password: password);
+
       Map<String, dynamic> userInfoMap = {
         "Email": email,
         "Name": name,
@@ -84,12 +89,13 @@ class AuthController extends GetxController {
         "Address": address,
         "Area": area,
         "PinCode": zip_int,
-        "Orders": [],
-        "Cart": [],
+        "orders": [],
+        "cart": [],
         "profile-image":
             'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__480.png',
       };
       DatabaseMethods().addUserInfoToDBUser(auth.currentUser!.uid, userInfoMap);
+      await Get.offAll(() => const VarifyEmail());
     } catch (e) {
       showToast("Account Creation Failed. $e");
     }

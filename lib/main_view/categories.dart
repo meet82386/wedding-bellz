@@ -48,7 +48,7 @@ class _CategoriesState extends State<Categories> {
       ),
       margin: const EdgeInsets.all(10),
       // padding: const EdgeInsets.all(8),
-      height: 100,
+      height: 150,
       child: Row(
         children: [
           Container(

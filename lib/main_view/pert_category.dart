@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../constants.dart' as consts;
 
 class PertCategory extends StatefulWidget {
@@ -45,9 +46,32 @@ class _PertCategoryState extends State<PertCategory> {
     });
   }
 
+  String name = '', mobile = '', email = '';
+  void getUserData() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('Email', isEqualTo: auth.currentUser!.email)
+        .get();
+
+    for (var doc in querySnapshot.docs) {
+      // Getting data directly
+      name = doc.get('Name');
+      email = doc.get('Email');
+      mobile = doc.get('Mobile');
+    }
+    setState(() {});
+  }
+
+  late Razorpay _razorpay;
+  var ordered;
+
   void initState() {
+    _razorpay = Razorpay();
     getData();
     super.initState();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   Widget WidgetCat({required Map categories}) {
@@ -130,8 +154,12 @@ class _PertCategoryState extends State<PertCategory> {
                 Row(
                   children: [
                     ElevatedButton(
-                      onPressed:
-                          categories['quantity'] == 0 ? null : () async {},
+                      onPressed: categories['quantity'] == 0
+                          ? null
+                          : () async {
+                              ordered = categories;
+                              openCheckout(categories['price']);
+                            },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(consts.FONTC)),
                       child: Row(
@@ -199,5 +227,70 @@ class _PertCategoryState extends State<PertCategory> {
         }).toList(),
       ),
     );
+  }
+
+  void openCheckout(amount) async {
+    getUserData();
+    var options = {
+      'key': 'rzp_test_WiN33F3FtHlokB',
+      'amount': (amount * 100.roundToDouble()).toString(),
+      'name': name,
+      'description': '',
+      'prefill': {'contact': mobile, 'email': email},
+      'external': {
+        'wallets': ['paytm']
+      }
+    };
+
+    try {
+      _razorpay.open(options);
+    } catch (e) {
+      // debugPrint(e);
+    }
+  }
+
+  Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    // Scaffold.of(context).showSnackBar(SnackBar(content: Text("SUCCESS: ${response.paymentId}")));
+    Fluttertoast.showToast(
+        msg: "SUCCESS: ${response.paymentId}", timeInSecForIosWeb: 4);
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(auth.currentUser?.uid)
+        .set({
+      "orders": FieldValue.arrayUnion([ordered])
+    }, SetOptions(merge: true));
+
+    final docRef = await FirebaseFirestore.instance
+        .collection("Categories")
+        .doc(ordered['category'])
+        .update({
+      'data': FieldValue.arrayRemove([ordered]),
+    });
+    ordered['quantity'] = ordered['quantity'] - 1;
+
+    await FirebaseFirestore.instance
+        .collection("Categories")
+        .doc(ordered['category'])
+        .set({
+      "data": FieldValue.arrayUnion([ordered])
+    }, SetOptions(merge: true));
+    setState(() {});
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    // Scaffold.of(context).showSnackBar(SnackBar(content: Text("ERROR: " + response.code.toString() + " - " + response.message)));
+    Fluttertoast.showToast(
+        msg: "ERROR: " + response.code.toString() + " - ",
+        timeInSecForIosWeb: 4);
+  }
+
+  Future<void> _handleExternalWallet(ExternalWalletResponse response) async {
+    // Scaffold.of(context).showSnackBar(SnackBar(content: Text("EXTERNAL_WALLET: ${response.walletName}")));
+    Fluttertoast.showToast(
+        msg: "EXTERNAL_WALLET: ${response.walletName}", timeInSecForIosWeb: 4);
+
+    Fluttertoast.showToast(
+        msg: "EXTERNAL_WALLET 2: ${response.walletName}",
+        timeInSecForIosWeb: 4);
   }
 }
